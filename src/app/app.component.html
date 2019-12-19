@@ -1,5 +1,13 @@
-<mat-toolbar>
-  <span>angular-app</span>
-  <span class="toolbar-spacer"></span>
-  <span>About</span>
-</mat-toolbar>
+<app-header></app-header>
+<mat-nav-list>
+  <mat-list-item *ngFor="let task of tasks">
+     <a matLine>{{ task.name }}</a>
+     <button mat-icon-button (click)="edit(task.id)">
+        <mat-icon>edit</mat-icon>
+     </button>
+     <button mat-icon-button (click)="delete(task.id)">
+      <mat-icon>delete</mat-icon>
+   </button>
+  </mat-list-item>
+</mat-nav-list>
+<app-footer></app-footer>
