@@ -1,0 +1,44 @@
+<form class="task-form">
+    <mat-form-field class="task-full-width">
+      <input 
+        id="name"
+        name="name"
+        required
+        minlength="4"
+        [(ngModel)]="newTask.name"
+        #name="ngModel"
+        matInput
+        placeholder="Name">
+    </mat-form-field>
+    <div *ngIf="name.invalid && (name.dirty || name.touched)" class="alert-danger">
+      <div *ngIf="name.errors.required">
+        Name is required.
+      </div>
+      <div *ngIf="name.errors.minlength">
+        Name must be at least 4 characters long.
+      </div>
+    </div>
+  
+    <mat-form-field class="task-full-width">
+      <textarea 
+      id="description"
+      name="description"
+      required
+      minlength="4"
+      [(ngModel)]="newTask.description"
+      #description="ngModel"
+      matInput 
+      placeholder="Description"></textarea>
+    </mat-form-field>
+    <div *ngIf="description.invalid && (description.dirty || description.touched)" class="alert-danger">
+      <div *ngIf="description.errors.required">
+        description is required.
+      </div>
+      <div *ngIf="description.errors.minlength">
+        description must be at least 4 characters long.
+      </div>
+    </div>
+
+    <button mat-stroked-button (click)="closeDialog()" >Cancel</button>
+    <button mat-stroked-button (click)="saveTask()" color="primary">Add</button>
+</form>

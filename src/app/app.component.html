@@ -1,7 +1,8 @@
 <app-header></app-header>
 <mat-nav-list>
   <mat-list-item *ngFor="let task of tasks">
-     <a matLine>{{ task.name }}</a>
+     <h3 matLine> {{task.name}} </h3>
+     <p matLine> {{task.description}} </p>
      <button mat-icon-button (click)="edit(task.id)">
         <mat-icon>edit</mat-icon>
      </button>

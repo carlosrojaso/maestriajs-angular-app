@@ -12,4 +12,6 @@ export class AppComponent {
 
   edit(id) {}
   delete(id) {}
+
+  constructor() {}
 }
