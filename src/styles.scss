@@ -1,6 +1,11 @@
 /* You can add global styles to this file, and also import other style files */
 @import '@angular/material/prebuilt-themes/deeppurple-amber.css';
+
 html, body { height: 100%; }
+a {
+  text-decoration: none;
+  color: black;
+}
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 
 .toolbar-spacer {
