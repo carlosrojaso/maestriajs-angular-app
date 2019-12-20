@@ -13,6 +13,7 @@ import { AboutComponent } from './about/about.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
 import { AppMaterialModule } from './app-material/app-material.module';
 import { AppRoutingModule } from './app-routing/app-routing.module';
+import { ShortenerPipe } from './shortener.pipe';
 
 @NgModule({
   declarations: [
@@ -21,7 +22,8 @@ import { AppRoutingModule } from './app-routing/app-routing.module';
     FooterComponent,
     FormDialogComponent,
     AboutComponent,
-    DashboardComponent
+    DashboardComponent,
+    ShortenerPipe
   ],
   imports: [
     BrowserModule,
