@@ -40,5 +40,5 @@
     </div>
 
     <button mat-stroked-button (click)="closeDialog()" >Cancel</button>
-    <button mat-stroked-button (click)="saveTask()" color="primary">Add</button>
+    <button mat-stroked-button (click)="(!isEditing)? saveTask(): editTask()" color="primary">{{actionTag}}</button>
 </form>
