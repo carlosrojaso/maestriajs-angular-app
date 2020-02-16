@@ -64,3 +64,4 @@ amplifyxc.config
 Todo-nrvbpxmvonacxjwzwetxxdznaq-dev
 src/app/API.service.ts
 src/app/API.ts
+.graphqlconfig.yml
