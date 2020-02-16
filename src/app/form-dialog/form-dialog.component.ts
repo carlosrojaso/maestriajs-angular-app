@@ -20,6 +20,7 @@ export class FormDialogComponent implements OnInit {
 
   ngOnInit() {
     if (this.data) {
+      console.log(this.data);
       this.isEditing = true;
       this.actionTag = 'Edit';
       this.newTask = this.data;

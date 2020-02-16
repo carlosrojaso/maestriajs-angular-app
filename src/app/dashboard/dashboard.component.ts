@@ -3,9 +3,9 @@ import { Component, OnInit } from '@angular/core';
 import { MatDialog } from '@angular/material/dialog';
 import { FormDialogComponent } from '../form-dialog/form-dialog.component';
 
-import Amplify from 'aws-amplify';
 import { DataStore } from '@aws-amplify/datastore';
 import { Todo } from '../../models';
+import uuid from 'uuid/v4';
 
 @Component({
   selector: 'app-dashboard',
@@ -22,11 +22,6 @@ export class DashboardComponent implements OnInit {
 
   async ngOnInit() {
     this.tasks = await this.getTasks();
-    console.log(this.tasks);
-
-    const subscription: any = DataStore.observe<Todo>(Todo).subscribe(msg => {
-      console.log(msg.model, msg.opType, msg.element);
-    });
   }
 
   getTask(id) {
@@ -34,33 +29,57 @@ export class DashboardComponent implements OnInit {
   }
 
   async getTasks() {
-    const todos: any = await DataStore.query<Todo>(Todo);
-    return todos;
+    const todos: any = await DataStore.query<any>(Todo);
+    return todos.map((elem: any) => ({...elem}));
   }
 
-  delete(id) {
-    const taskToDelete = this.tasks.findIndex((item) => (item.id === id));
-
-    this.tasks.splice(taskToDelete, 1);
-
+  async delete(id) {
+    const todelete = await DataStore.query<any>(Todo, id);
+    DataStore.delete(todelete).then(
+      () => {
+        const taskToDelete = this.tasks.findIndex((item) => (item.id === id));
+        this.tasks.splice(taskToDelete, 1);
+      }
+    );
   }
 
   edit(id) {
     const taskToEdit = this.getTask(id);
     const dialogRef = this.dialog.open(FormDialogComponent, { data: taskToEdit });
     dialogRef.afterClosed().subscribe(
-      (result) => {
-        this.tasks[taskToEdit] = result;
+      async (result) => {
+
+        const original = await DataStore.query<any>(Todo, id);
+
+        console.log('original', original);
+
+        await DataStore.save(
+          Todo.copyOf(original, updated => {
+            updated.name = result.name;
+            updated.description = result.description;
+          })
+        ).then(
+          () => {
+            this.tasks[taskToEdit] = result;
+          }
+        );
     });
   }
 
   save() {
     const dialogRef = this.dialog.open(FormDialogComponent);
     dialogRef.afterClosed().subscribe(
-      (result) => {
-        const newIndex = this.tasks.length + 1;
+      async (result) => {
+        const newIndex = uuid();
         result.id = newIndex;
-        this.tasks.push(result);
+
+        await DataStore.save(new Todo(
+          result
+        )).then(
+          () => {
+            this.tasks.push(result);
+          }
+        );
     });
   }
 }
