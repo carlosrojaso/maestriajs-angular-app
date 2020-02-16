@@ -4,7 +4,6 @@ query GetTodo($id: ID!) {
     id
     name
     description
-    status
   }
 }
 query ListTodos(
@@ -17,16 +16,7 @@ query ListTodos(
       id
       name
       description
-      status
     }
     nextToken
-  }
-}
-query Get {
-  get {
-    id
-    name
-    description
-    status
   }
 }

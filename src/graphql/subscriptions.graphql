@@ -4,7 +4,6 @@ subscription OnCreateTodo {
     id
     name
     description
-    status
   }
 }
 subscription OnUpdateTodo {
@@ -12,7 +11,6 @@ subscription OnUpdateTodo {
     id
     name
     description
-    status
   }
 }
 subscription OnDeleteTodo {
@@ -20,6 +18,5 @@ subscription OnDeleteTodo {
     id
     name
     description
-    status
   }
 }

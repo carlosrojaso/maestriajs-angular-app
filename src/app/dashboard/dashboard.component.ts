@@ -1,8 +1,11 @@
 import { Component, OnInit } from '@angular/core';
-import { TaskDataService } from '../task-data.service';
 
 import { MatDialog } from '@angular/material/dialog';
 import { FormDialogComponent } from '../form-dialog/form-dialog.component';
+
+import Amplify from 'aws-amplify';
+import { DataStore } from '@aws-amplify/datastore';
+import { Todo } from '../../models';
 
 @Component({
   selector: 'app-dashboard',
@@ -14,33 +17,32 @@ export class DashboardComponent implements OnInit {
   tasks: any;
 
   constructor(
-    private taskDataService: TaskDataService,
     public dialog: MatDialog
   ) {}
 
-  ngOnInit() {
-    this.getTasks();
+  async ngOnInit() {
+    this.tasks = await this.getTasks();
+    console.log(this.tasks);
+
+    const subscription: any = DataStore.observe<Todo>(Todo).subscribe(msg => {
+      console.log(msg.model, msg.opType, msg.element);
+    });
   }
 
   getTask(id) {
     return this.tasks.find(item => item.id === id);
   }
 
-  getTasks() {
-    this.taskDataService.getTasks(1).subscribe(
-      (response: Array<any>) => {
-        this.tasks = response.map((item) => ({id: item.id, name: item.title, description: item.body}));
-      }
-    );
+  async getTasks() {
+    const todos: any = await DataStore.query<Todo>(Todo);
+    return todos;
   }
 
   delete(id) {
     const taskToDelete = this.tasks.findIndex((item) => (item.id === id));
-    this.taskDataService.deleteTask(id).subscribe(
-      () => {
-        this.tasks.splice(taskToDelete, 1);
-      }
-    );
+
+    this.tasks.splice(taskToDelete, 1);
+
   }
 
   edit(id) {
@@ -48,11 +50,7 @@ export class DashboardComponent implements OnInit {
     const dialogRef = this.dialog.open(FormDialogComponent, { data: taskToEdit });
     dialogRef.afterClosed().subscribe(
       (result) => {
-        this.taskDataService.putTask(result).subscribe(
-          () => {
-            this.tasks[taskToEdit] = result;
-          }
-        );
+        this.tasks[taskToEdit] = result;
     });
   }
 
@@ -62,12 +60,7 @@ export class DashboardComponent implements OnInit {
       (result) => {
         const newIndex = this.tasks.length + 1;
         result.id = newIndex;
-
-        this.taskDataService.createTask(result).subscribe(
-          () => {
-            this.tasks.push(result);
-          }
-        );
+        this.tasks.push(result);
     });
   }
 }

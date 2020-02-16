@@ -6,6 +6,8 @@ import { AppComponent } from './app.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientModule } from '@angular/common/http';
 
+import { AmplifyAngularModule, AmplifyService } from 'aws-amplify-angular';
+
 import { HeaderComponent } from './header/header.component';
 import { FooterComponent } from './footer/footer.component';
 import { FormDialogComponent } from './form-dialog/form-dialog.component';
@@ -31,9 +33,11 @@ import { ShortenerPipe } from './shortener.pipe';
     FormsModule,
     HttpClientModule,
     AppMaterialModule,
+    AmplifyAngularModule,
     AppRoutingModule
   ],
-  providers: [],
-  bootstrap: [AppComponent]
+  providers: [AmplifyService],
+  bootstrap: [AppComponent],
+  entryComponents: [FormDialogComponent]
 })
 export class AppModule { }
