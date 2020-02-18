@@ -1,8 +1,10 @@
 import { Component, OnInit } from '@angular/core';
-import { TaskDataService } from '../task-data.service';
+import { AppsyncService } from '../appsync.service';
 
 import { MatDialog } from '@angular/material/dialog';
 import { FormDialogComponent } from '../form-dialog/form-dialog.component';
+
+import uuidv4 from 'uuid/v4';
 
 @Component({
   selector: 'app-dashboard',
@@ -14,7 +16,7 @@ export class DashboardComponent implements OnInit {
   tasks: any;
 
   constructor(
-    private taskDataService: TaskDataService,
+    private taskDataService: AppsyncService,
     public dialog: MatDialog
   ) {}
 
@@ -27,20 +29,12 @@ export class DashboardComponent implements OnInit {
   }
 
   getTasks() {
-    this.taskDataService.getTasks(1).subscribe(
-      (response: Array<any>) => {
-        this.tasks = response.map((item) => ({id: item.id, name: item.title, description: item.body}));
-      }
-    );
+    // this.tasks = response.map((item) => ({id: item.id, name: item.title, description: item.body}));
   }
 
   delete(id) {
     const taskToDelete = this.tasks.findIndex((item) => (item.id === id));
-    this.taskDataService.deleteTask(id).subscribe(
-      () => {
-        this.tasks.splice(taskToDelete, 1);
-      }
-    );
+    this.tasks.splice(taskToDelete, 1);
   }
 
   edit(id) {
@@ -48,11 +42,7 @@ export class DashboardComponent implements OnInit {
     const dialogRef = this.dialog.open(FormDialogComponent, { data: taskToEdit });
     dialogRef.afterClosed().subscribe(
       (result) => {
-        this.taskDataService.putTask(result).subscribe(
-          () => {
-            this.tasks[taskToEdit] = result;
-          }
-        );
+        this.tasks[taskToEdit] = result;
     });
   }
 
@@ -60,14 +50,10 @@ export class DashboardComponent implements OnInit {
     const dialogRef = this.dialog.open(FormDialogComponent);
     dialogRef.afterClosed().subscribe(
       (result) => {
-        const newIndex = this.tasks.length + 1;
+        const newIndex = uuidv4();
         result.id = newIndex;
 
-        this.taskDataService.createTask(result).subscribe(
-          () => {
-            this.tasks.push(result);
-          }
-        );
+        this.tasks.push(result);
     });
   }
 }
