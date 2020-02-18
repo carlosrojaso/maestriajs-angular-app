@@ -10,7 +10,7 @@ import gql from 'graphql-tag';
 import { map } from 'rxjs/operators';
 
 import { listTodos } from '../../graphql/queries';
-import { createTodo as createMutation, updateTodo, deleteTodo } from '../../graphql/mutations';
+import { createTodo as createMutation, updateTodo, deleteTodo as deleteMutation } from '../../graphql/mutations';
 import { merge, fromEvent, Observable, Observer } from 'rxjs';
 import { onCreateTodo } from '../../graphql/subscriptions';
 
@@ -53,9 +53,40 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.tasks.find(item => item.id === id);
   }
 
-  delete(id) {
-    const taskToDelete = this.tasks.findIndex((item) => (item.id === id));
-    this.tasks.splice(taskToDelete, 1);
+  async delete(task) {
+    const client = await this.appsyncService.hc();
+
+    // const taskToDelete = this.tasks.findIndex((item) => (item.id === id));
+    // this.tasks.splice(taskToDelete, 1);
+
+    const result = await client.mutate({
+      mutation: gql(deleteMutation),
+      variables: {
+        input: {
+          id: task.id
+        }
+      },
+      optimisticResponse: () => ({
+        deleteTodo: {
+          __typename: '', // This type must match the return type of the query below (listTodos)
+          id: task.id,
+          name: task.name,
+          description: task.description
+        }
+      }),
+      update: (cache, { data: { deleteTodo } }) => {
+        const query = gql(listTodos);
+
+        // Read query from cache
+        const data = cache.readQuery({ query });
+
+        // Remove item to the cache copy
+        data.listTodos.items = [...data.listTodos.items.filter(item => item.id !== deleteTodo.id)];
+
+        // Overwrite the cache with the new results
+        cache.writeQuery({ query, data });
+      }
+    });
   }
 
   detectOnline() {
