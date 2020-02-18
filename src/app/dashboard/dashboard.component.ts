@@ -10,7 +10,7 @@ import gql from 'graphql-tag';
 import { map } from 'rxjs/operators';
 
 import { listTodos } from '../../graphql/queries';
-import { createTodo as createMutation, updateTodo, deleteTodo as deleteMutation } from '../../graphql/mutations';
+import { createTodo as createMutation, updateTodo as updateMutation, deleteTodo as deleteMutation } from '../../graphql/mutations';
 import { merge, fromEvent, Observable, Observer } from 'rxjs';
 import { onCreateTodo, onDeleteTodo } from '../../graphql/subscriptions';
 
@@ -50,10 +50,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     (this.listTasksSubscriber && this.listTasksSubscriber.unsubscribe())();
     (this.subsCreate && this.subsCreate.unsubscribe())();
     (this.subsDelete && this.subsDelete.unsubscribe())();
-  }
-
-  getTask(id) {
-    return this.tasks.find(item => item.id === id);
   }
 
   async delete(task) {
@@ -102,12 +98,50 @@ export class DashboardComponent implements OnInit, OnDestroy {
       }));
   }
 
-  edit(id) {
-    const taskToEdit = this.getTask(id);
-    const dialogRef = this.dialog.open(FormDialogComponent, { data: taskToEdit });
+  async edit(task) {
+    const client = await this.appsyncService.hc();
+
+    const dialogRef = this.dialog.open(FormDialogComponent, { data: task });
     dialogRef.afterClosed().subscribe(
-      (result) => {
-        this.tasks[taskToEdit] = result;
+      async (response) => {
+        if (response) {
+          const result =  await client.mutate({
+            mutation: gql(updateMutation),
+            variables: {
+              input: {
+                id: task.id,
+                name: task.name,
+                description: task.description,
+              }
+            },
+            optimisticResponse: () => ({
+              updateTodo: {
+                __typename: '', // This type must match the return type of the query below (listTodos)
+                id: task.id,
+                name: task.name,
+                description: task.description
+              }
+            }),
+            update: (cache, { data: { updateTodo } }) => {
+              const query = gql(listTodos);
+
+              // Read query from cache
+              const data = cache.readQuery({ query });
+
+              const objIndex = data.listTodos.items.findIndex((obj => obj.id === updateTodo.id));
+
+              data.listTodos.items[objIndex].name = updateTodo.name;
+              data.listTodos.items[objIndex].description = updateTodo.description;
+
+              // Overwrite the cache with the new results
+              cache.writeQuery({ query, data });
+            }
+          });
+
+          if (result) {
+            console.log(result);
+          }
+        }
     });
   }
 
@@ -124,41 +158,43 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const dialogRef = this.dialog.open(FormDialogComponent);
     dialogRef.afterClosed().subscribe(
       async (response) => {
-        const newIndex = uuidv4();
-        response.id = newIndex;
+        if (response) {
+          const newIndex = uuidv4();
+          response.id = newIndex;
 
-        const result = await client.mutate({
-          mutation: gql(createMutation),
-          variables: {
-            input: response
-          },
-          optimisticResponse: () => ({
-            createTodo: {
-              __typename: '',
-              id: response.id,
-              name: response.name,
-              description: response.description,
+          const result = await client.mutate({
+            mutation: gql(createMutation),
+            variables: {
+              input: response
+            },
+            optimisticResponse: () => ({
+              createTodo: {
+                __typename: '',
+                id: response.id,
+                name: response.name,
+                description: response.description,
+              }
+            }),
+            update: (cache, { data: { createTodo } }) => {
+              const query = gql(listTodos);
+
+              // Read query from cache
+              const data = cache.readQuery({ query });
+
+              // Add newly created item to the cache copy
+              data.listTodos.items = [
+                ...data.listTodos.items.filter(item => item.id !== createTodo.id),
+                createTodo
+              ];
+
+              // Overwrite the cache with the new results
+              cache.writeQuery({ query, data });
             }
-          }),
-          update: (cache, { data: { createTodo } }) => {
-            const query = gql(listTodos);
+          });
 
-            // Read query from cache
-            const data = cache.readQuery({ query });
-
-            // Add newly created item to the cache copy
-            data.listTodos.items = [
-              ...data.listTodos.items.filter(item => item.id !== createTodo.id),
-              createTodo
-            ];
-
-            // Overwrite the cache with the new results
-            cache.writeQuery({ query, data });
+          if (result) {
+            console.log(result);
           }
-        });
-
-        if (result) {
-          console.log(result);
         }
     });
   }
