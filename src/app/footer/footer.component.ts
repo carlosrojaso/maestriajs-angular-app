@@ -7,6 +7,7 @@ import { Component, Output, EventEmitter, Input } from '@angular/core';
 })
 export class FooterComponent {
   @Input() titleFooter: string;
+  @Input() connectionStatus: string;
   @Output() openDialog = new EventEmitter();
 
   onSave() {

@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+// tslint:disable: no-shadowed-variable
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { AppsyncService } from '../appsync.service';
 
 import { MatDialog } from '@angular/material/dialog';
@@ -6,21 +7,24 @@ import { FormDialogComponent } from '../form-dialog/form-dialog.component';
 
 import uuidv4 from 'uuid/v4';
 import gql from 'graphql-tag';
+import { map } from 'rxjs/operators';
 
 import { listTodos } from '../../graphql/queries';
-import { CreateTodoInput } from '../../graphql/inputs';
-import { createTodo, updateTodo, deleteTodo } from '../../graphql/mutations';
-import { buildMutation } from 'aws-appsync';
+import { createTodo as createMutation, updateTodo, deleteTodo } from '../../graphql/mutations';
+import { merge, fromEvent, Observable, Observer } from 'rxjs';
+import { onCreateTodo } from '../../graphql/subscriptions';
 
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.scss']
 })
-export class DashboardComponent implements OnInit {
-  title = 'angular-app';
+export class DashboardComponent implements OnInit, OnDestroy {
   tasks: any;
   listTasksSubscriber;
+  connectionStatus = 'offline';
+  subsCreate: any;
+  title = 'angular-app';
 
   constructor(
     private appsyncService: AppsyncService,
@@ -29,6 +33,20 @@ export class DashboardComponent implements OnInit {
 
   async ngOnInit() {
     await this.loadTaskSubscriber();
+
+    this.detectOnline().subscribe( async isOnline => {
+      if (isOnline) {
+        this.connectionStatus = 'online';
+        await this.loadOnCreateSubscriber();
+      } else {
+        this.connectionStatus = 'offline';
+      }
+    });
+  }
+
+  ngOnDestroy() {
+    (this.listTasksSubscriber && this.listTasksSubscriber.unsubscribe())();
+    (this.subsCreate && this.subsCreate.unsubscribe())();
   }
 
   getTask(id) {
@@ -38,6 +56,16 @@ export class DashboardComponent implements OnInit {
   delete(id) {
     const taskToDelete = this.tasks.findIndex((item) => (item.id === id));
     this.tasks.splice(taskToDelete, 1);
+  }
+
+  detectOnline() {
+    return merge<boolean>(
+      fromEvent(window, 'offline').pipe(map(() => false)),
+      fromEvent(window, 'online').pipe(map(() => true)),
+      new Observable((sub: Observer<boolean>) => {
+        sub.next(navigator.onLine);
+        sub.complete();
+      }));
   }
 
   edit(id) {
@@ -59,7 +87,7 @@ export class DashboardComponent implements OnInit {
         response.id = newIndex;
 
         const result = await client.mutate({
-          mutation: gql(createTodo),
+          mutation: gql(createMutation),
           variables: {
             input: response
           },
@@ -94,6 +122,25 @@ export class DashboardComponent implements OnInit {
     });
   }
 
+  async loadOnCreateSubscriber() {
+    this.subsCreate = await this.onCreateListener();
+
+    this.subsCreate.subscribe({
+      next: data => {
+        if (data.data.onCreateTodo) {
+            this.tasks = this.tasks.filter((el) => (el.id !== undefined));
+            const objIndex = this.tasks.findIndex((obj => obj.id === data.data.onCreateTodo.id));
+            if (objIndex < 0) {
+              this.tasks.push(data.data.onCreateTodo);
+            }
+        }
+      },
+      error: error => {
+        console.warn(error);
+      }
+    });
+  }
+
   async loadTasks() {
     const client = await this.appsyncService.hc();
 
@@ -117,5 +164,10 @@ export class DashboardComponent implements OnInit {
         console.warn(err);
       }
     );
+  }
+
+  async onCreateListener() {
+    const client = await this.appsyncService.hc();
+    return client.subscribe({query: gql(onCreateTodo)});
   }
 }
