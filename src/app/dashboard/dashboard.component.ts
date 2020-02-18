@@ -12,7 +12,7 @@ import { map } from 'rxjs/operators';
 import { listTodos } from '../../graphql/queries';
 import { createTodo as createMutation, updateTodo as updateMutation, deleteTodo as deleteMutation } from '../../graphql/mutations';
 import { merge, fromEvent, Observable, Observer } from 'rxjs';
-import { onCreateTodo, onDeleteTodo } from '../../graphql/subscriptions';
+import { onCreateTodo, onDeleteTodo, onUpdateTodo } from '../../graphql/subscriptions';
 
 @Component({
   selector: 'app-dashboard',
@@ -25,6 +25,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   connectionStatus = 'offline';
   subsCreate: any;
   subsDelete: any;
+  subsUpdate: any;
   title = 'angular-app';
 
   constructor(
@@ -40,6 +41,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.connectionStatus = 'online';
         await this.loadOnCreateSubscriber();
         await this.loadOnDeleteSubscriber();
+        await this.loadOnUpdateSubscriber();
       } else {
         this.connectionStatus = 'offline';
       }
@@ -50,6 +52,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     (this.listTasksSubscriber && this.listTasksSubscriber.unsubscribe())();
     (this.subsCreate && this.subsCreate.unsubscribe())();
     (this.subsDelete && this.subsDelete.unsubscribe())();
+    (this.subsUpdate && this.subsUpdate.unsubscribe())();
   }
 
   async delete(task) {
@@ -152,6 +155,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  handleEdit(task) {
+    const objIndex = this.tasks.findIndex((obj => obj.id === task.id));
+    this.tasks[objIndex] = {...task};
+  }
+
   async save() {
     const client = await this.appsyncService.hc();
 
@@ -233,6 +241,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
     });
   }
 
+  async loadOnUpdateSubscriber() {
+    this.subsUpdate = await this.onUpdateListener();
+
+    this.subsUpdate.subscribe({
+      next: data => {
+        if (data.data.onUpdateTodo) {
+          this.handleEdit(data.data.onUpdateTodo);
+        }
+      },
+      error: error => {
+        console.warn(error);
+      }
+    });
+  }
+
   async loadTasks() {
     const client = await this.appsyncService.hc();
 
@@ -266,5 +289,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
   async onDeleteListener() {
     const client = await this.appsyncService.hc();
     return client.subscribe({query: gql(onDeleteTodo)});
+  }
+
+  async onUpdateListener() {
+    const client = await this.appsyncService.hc();
+    return client.subscribe({query: gql(onUpdateTodo)});
   }
 }
