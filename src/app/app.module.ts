@@ -33,6 +33,7 @@ import { ShortenerPipe } from './shortener.pipe';
     AppMaterialModule,
     AppRoutingModule
   ],
+  entryComponents: [FormDialogComponent],
   providers: [],
   bootstrap: [AppComponent]
 })
