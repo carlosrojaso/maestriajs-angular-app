@@ -58,9 +58,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   async delete(task) {
     const client = await this.appsyncService.hc();
 
-    // const taskToDelete = this.tasks.findIndex((item) => (item.id === id));
-    // this.tasks.splice(taskToDelete, 1);
-
     const result = await client.mutate({
       mutation: gql(deleteMutation),
       variables: {
