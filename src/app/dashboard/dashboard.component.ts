@@ -27,6 +27,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   subsDelete: any;
   subsUpdate: any;
   title = 'angular-app';
+  version = 1;
 
   constructor(
     private appsyncService: AppsyncService,
@@ -62,15 +63,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
       mutation: gql(deleteMutation),
       variables: {
         input: {
-          id: task.id
+          id: task.id,
+          _version: task._version
         }
       },
       optimisticResponse: () => ({
         deleteTodo: {
-          __typename: '', // This type must match the return type of the query below (listTodos)
-          id: task.id,
-          name: task.name,
-          description: task.description
+          __typename: 'Todo', // This type must match the return type of the query below (listTodos)
+          ...task
         }
       }),
       update: (cache, { data: { deleteTodo } }) => {
@@ -86,6 +86,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
         cache.writeQuery({ query, data });
       }
     });
+
+    if (result) {
+      console.log(result);
+    }
   }
 
   detectOnline() {
@@ -104,22 +108,25 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const dialogRef = this.dialog.open(FormDialogComponent, { data: task });
     dialogRef.afterClosed().subscribe(
       async (response) => {
+        console.log(response);
         if (response) {
           const result =  await client.mutate({
             mutation: gql(updateMutation),
             variables: {
               input: {
-                id: task.id,
-                name: task.name,
-                description: task.description,
+                id: response.id,
+                name: response.name,
+                description: response.description,
+                _version: response.version
               }
             },
             optimisticResponse: () => ({
               updateTodo: {
-                __typename: '', // This type must match the return type of the query below (listTodos)
-                id: task.id,
-                name: task.name,
-                description: task.description
+                __typename: 'Todo', // This type must match the return type of the query below (listTodos)
+                id: response.id,
+                name: response.name,
+                description: response.description,
+                _version: response.version
               }
             }),
             update: (cache, { data: { updateTodo } }) => {
@@ -132,6 +139,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
               data.listTodos.items[objIndex].name = updateTodo.name;
               data.listTodos.items[objIndex].description = updateTodo.description;
+              data.listTodos.items[objIndex]._version = updateTodo._version;
 
               // Overwrite the cache with the new results
               cache.writeQuery({ query, data });
@@ -166,6 +174,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         if (response) {
           const newIndex = uuidv4();
           response.id = newIndex;
+          response._version = this.version;
 
           const result = await client.mutate({
             mutation: gql(createMutation),
@@ -174,10 +183,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
             },
             optimisticResponse: () => ({
               createTodo: {
-                __typename: '',
+                __typename: 'Todo',
                 id: response.id,
                 name: response.name,
                 description: response.description,
+                _version: this.version
               }
             }),
             update: (cache, { data: { createTodo } }) => {
@@ -269,7 +279,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.listTasksSubscriber.subscribe(
       ({data}) => {
         if (data && data.hasOwnProperty('listTodos')) {
-          this.tasks = data.listTodos.items;
+          this.tasks = data.listTodos.items.filter(task => task._deleted !== true);
         }
       },
       (err: any) => {
